@@ -1,0 +1,3 @@
+# Large log files
+backtests/*.log
+backtests/.DS_Store 
