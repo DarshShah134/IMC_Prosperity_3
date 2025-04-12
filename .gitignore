@@ -1,3 +1,5 @@
 # Large log files
 backtests/*.log
-backtests/.DS_Store 
+# Ignore everything in backtests directory
+backtests/
+.DS_Store 
