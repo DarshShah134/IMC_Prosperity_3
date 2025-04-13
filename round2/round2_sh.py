@@ -717,6 +717,77 @@ class Trader:
             orders.append(Order(product, round(ask), -sell_quantity))
 
         return buy_order_volume, sell_order_volume
+    
+    def clear_position_order(self,
+        orders: List[Order],
+        order_depth: OrderDepth,
+        position: int, 
+        position_limit: int,
+        product: str,
+        buy_order_volume: int,
+        sell_order_volume: int,
+        fair_value: float,
+        width: int
+    ):
+        position_after_take = position + buy_order_volume - sell_order_volume
+        fair_for_bid = math.floor(fair_value)
+        fair_for_ask = math.ceil(fair_value)
+        buy_quantity = position_limit - (position + buy_order_volume)
+        sell_quantity = position_limit + (position - sell_order_volume)
+        if position_after_take > 0:
+            if fair_for_ask in order_depth.buy_orders:
+                clear_quantity = min(order_depth.buy_orders[fair_for_ask], position_after_take)
+                sent_quantity = min(sell_quantity, clear_quantity)
+                orders.append(Order(product, fair_for_ask, -abs(sent_quantity)))
+                sell_order_volume += abs(sent_quantity)
+        if position_after_take < 0:
+            if fair_for_bid in order_depth.sell_orders:
+                clear_quantity = min(abs(order_depth.sell_orders[fair_for_bid]), abs(position_after_take))
+                sent_quantity = min(buy_quantity, clear_quantity)
+                orders.append(Order(product, fair_for_bid, abs(sent_quantity)))
+                buy_order_volume += abs(sent_quantity)
+        return buy_order_volume, sell_order_volume
+
+    def rainforest_resin_orders(self, order_depth: OrderDepth, position: int, position_limit: int) -> List[Order]:
+        orders: List[Order] = []
+        buy_order_volume = 0
+        sell_order_volume = 0
+        product = Product.RAINFOREST_RESIN
+        baaf = min(
+            [p for p in order_depth.sell_orders if p > self.params[Product.RAINFOREST_RESIN]["fair_value"] + 1],
+            default=self.params[Product.RAINFOREST_RESIN]["fair_value"] + 2,
+        )
+        bbbf = max(
+            [p for p in order_depth.buy_orders if p < self.params[Product.RAINFOREST_RESIN]["fair_value"] - 1],
+            default=self.params[Product.RAINFOREST_RESIN]["fair_value"] - 2,
+        )
+        if order_depth.sell_orders:
+            best_ask = min(order_depth.sell_orders.keys())
+            best_ask_amount = -order_depth.sell_orders[best_ask]
+            if best_ask < self.params[Product.RAINFOREST_RESIN]["fair_value"]:
+                quantity = min(best_ask_amount, position_limit - position)
+                if quantity > 0:
+                    orders.append(Order(product, best_ask, quantity))
+                    buy_order_volume += quantity
+        if order_depth.buy_orders:
+            best_bid = max(order_depth.buy_orders.keys())
+            best_bid_amount = order_depth.buy_orders[best_bid]
+            if best_bid > self.params[Product.RAINFOREST_RESIN]["fair_value"]:
+                quantity = min(best_bid_amount, position_limit + position)
+                if quantity > 0:
+                    orders.append(Order(product, best_bid, -quantity))
+                    sell_order_volume += quantity
+        buy_order_volume, sell_order_volume = self.clear_position_order(
+            orders, order_depth, position, position_limit, product,
+            buy_order_volume, sell_order_volume, self.params[Product.RAINFOREST_RESIN]["fair_value"], 1
+        )
+        buy_quantity = position_limit - (position + buy_order_volume)
+        if buy_quantity > 0:
+            orders.append(Order(product, bbbf + 1, buy_quantity))
+        sell_quantity = position_limit + (position - sell_order_volume)
+        if sell_quantity > 0:
+            orders.append(Order(product, baaf - 1, -sell_quantity))
+        return orders
 
     ############################################################################
     #                            SQUID INK LOGIC                               #
@@ -1165,35 +1236,10 @@ class Trader:
 
         # --- 2) RAINFOREST_RESIN logic (unchanged) ---
         if Product.RAINFOREST_RESIN in self.params and Product.RAINFOREST_RESIN in state.order_depths:
-            product = Product.RAINFOREST_RESIN
-            od = state.order_depths[product]
-            position = state.position.get(product, 0)
-            buy_vol = 0
-            sell_vol = 0
-            fair_value = self.params[product]["fair_value"]
-            take_width = self.params[product]["take_width"]
-            clear_width = self.params[product]["clear_width"]
-            disregard_edge = self.params[product]["disregard_edge"]
-            join_edge = self.params[product]["join_edge"]
-            default_edge = self.params[product]["default_edge"]
-            soft_position_limit = self.params[product]["soft_position_limit"]
-            prevent_adverse = self.params[product].get("prevent_adverse", False)
-            adverse_volume = self.params[product].get("adverse_volume", 0)
-
-            # partner flow: take → clear → make
-            resin_orders, buy_vol, sell_vol = self.take_orders(
-                product, od, fair_value, take_width, position, prevent_adverse, adverse_volume
+            position = state.position.get(Product.RAINFOREST_RESIN, 0)
+            result[Product.RAINFOREST_RESIN] = self.rainforest_resin_orders(
+                state.order_depths[Product.RAINFOREST_RESIN], position, self.LIMIT[Product.RAINFOREST_RESIN]
             )
-            resin_clear_orders, buy_vol, sell_vol = self.clear_orders(
-                product, od, fair_value, clear_width, position, buy_vol, sell_vol
-            )
-            resin_make_orders, _, _ = self.make_orders(
-                product, od, fair_value, position,
-                buy_vol, sell_vol,
-                disregard_edge, join_edge, default_edge,
-                True, soft_position_limit
-            )
-            result[product] = resin_orders + resin_clear_orders + resin_make_orders
 
         # --- 3) KELP logic: replaced with your snippet approach ---
         if Product.KELP in self.params and Product.KELP in state.order_depths:
