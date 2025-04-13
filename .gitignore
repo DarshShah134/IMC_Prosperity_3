@@ -1,0 +1,5 @@
+# Large log files
+backtests/*.log
+# Ignore everything in backtests directory
+backtests/
+.DS_Store 
