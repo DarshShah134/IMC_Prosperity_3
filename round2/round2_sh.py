@@ -93,15 +93,14 @@ POSITION_LIMITS = {
     Product.PICNIC_BASKET2: 100,
 }
 
-# Picnic‐basket hedge sets from snippet #2 (we keep these for basket2)
 HEDGE_SETS = {
     "A": {
-        Product.PICNIC_BASKET1: {Product.CROISSANTS: 6,  Product.JAMS: 3,  Product.DJEMBES: 1},
-        Product.PICNIC_BASKET2: {Product.CROISSANTS: 4,  Product.JAMS: 2},
+        Product.PICNIC_BASKET1: {Product.CROISSANTS: -4, Product.JAMS: -5, Product.DJEMBES: -4},
+        Product.PICNIC_BASKET2: {Product.CROISSANTS: -4, Product.JAMS: -3},
     },
     "B": {
-        Product.PICNIC_BASKET1: {Product.CROISSANTS: 6,  Product.JAMS: 3,  Product.DJEMBES: 1},
-        Product.PICNIC_BASKET2: {Product.CROISSANTS: 4,  Product.JAMS: 2},
+         Product.PICNIC_BASKET1: {Product.CROISSANTS: -4, Product.JAMS: -5, Product.DJEMBES: -4},
+        Product.PICNIC_BASKET2: {Product.CROISSANTS: -4, Product.JAMS: -3},
     },
 }
 
