@@ -96,12 +96,12 @@ POSITION_LIMITS = {
 # Picnic-basket hedge sets from snippet #2 (we keep these for basket2)
 HEDGE_SETS = {
     "A": {
-        Product.PICNIC_BASKET1: {Product.CROISSANTS: 6,  Product.JAMS: 3,  Product.DJEMBES: 1},
-        Product.PICNIC_BASKET2: {Product.CROISSANTS: 4,  Product.JAMS: 2},
+        Product.PICNIC_BASKET1: {Product.CROISSANTS: -4, Product.JAMS: -5, Product.DJEMBES: -4},
+        Product.PICNIC_BASKET2: {Product.CROISSANTS: -4, Product.JAMS: -3},
     },
     "B": {
-        Product.PICNIC_BASKET1: {Product.CROISSANTS: 6,  Product.JAMS: 3,  Product.DJEMBES: 1},
-        Product.PICNIC_BASKET2: {Product.CROISSANTS: 4,  Product.JAMS: 2},
+         Product.PICNIC_BASKET1: {Product.CROISSANTS: -4, Product.JAMS: -5, Product.DJEMBES: -4},
+        Product.PICNIC_BASKET2: {Product.CROISSANTS: -4, Product.JAMS: -3},
     },
 }
 
@@ -634,7 +634,7 @@ class Trader:
             else:
                 rsi = 50
 
-            print(f"[SQUID_INK] mid={mid_price:.2f}, RSI={rsi:.2f}")
+            logger.print(f"[SQUID_INK] mid={mid_price:.2f}, RSI={rsi:.2f}")
 
             # If ask <1900 and RSI<30 => buy
             if order_depth.sell_orders:
@@ -1024,7 +1024,7 @@ class Trader:
                     orders.append(Order(product, best_bid, -qty))
 
             if orders:
-                print(f"[DjembeJamTrader] {product} => {orders}")
+                logger.print(f"[DjembeJamTrader] {product} => {orders}")
             result[product] = orders
 
         # --- 2) RAINFOREST_RESIN logic (unchanged) ---
