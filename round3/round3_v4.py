@@ -4,6 +4,8 @@ import jsonpickle
 import math
 import json
 import statistics  # for stdev in the new basket1 snippet
+import numpy as np
+from statistics import NormalDist
 
 ###############################################################################
 #                                  CONSTANTS                                  #
@@ -20,6 +22,14 @@ class Product:
     CROISSANTS = "CROISSANTS"
     PICNIC_BASKET1 = "PICNIC_BASKET1"
     PICNIC_BASKET2 = "PICNIC_BASKET2"
+
+    # ---------------- Added the Volcanic products from second snippet ---------------
+    VOLCANIC_ROCK = "VOLCANIC_ROCK"
+    VOLCANIC_ROCK_VOUCHER_9500 = "VOLCANIC_ROCK_VOUCHER_9500"
+    VOLCANIC_ROCK_VOUCHER_9750 = "VOLCANIC_ROCK_VOUCHER_9750"
+    VOLCANIC_ROCK_VOUCHER_10000 = "VOLCANIC_ROCK_VOUCHER_10000"
+    VOLCANIC_ROCK_VOUCHER_10250 = "VOLCANIC_ROCK_VOUCHER_10250"
+    VOLCANIC_ROCK_VOUCHER_10500 = "VOLCANIC_ROCK_VOUCHER_10500"
 
 # --------------------------------------------------------------------------------
 #     REMOVED the old PB1_WEIGHTS and BASKET1_SPREAD_PARAMS that your old
@@ -69,7 +79,7 @@ PARAMS = {
     },
 
     # If you need any spread parameters for the “second algorithm’s basket1 logic,”
-    # you can place them here. For example (matching the second code snippet):
+    # you can place them here:
     "SPREAD1": {
         "default_spread_mean": 48.777856,
         "default_spread_std": 85.119723,
@@ -77,14 +87,65 @@ PARAMS = {
         "zscore_threshold": 4,
         "target_position": 100
     },
-
-    # If your second snippet references a reversion or something for PICNIC_BASKET1,
-    # you can store it under Product.PICNIC_BASKET1, e.g.:
     Product.PICNIC_BASKET1: {
-        # “adverse_volume,” “b2_adjustment_factor,” etc. if second code requires them
-        "adverse_volume": 999999,  # example placeholder
+        "adverse_volume": 999999,
         "b2_adjustment_factor": 0.05,
-        # plus any reversion params if your second code uses them
+    },
+
+    # -------------- Add minimal entries for Volcanic from second snippet -----------
+    Product.VOLCANIC_ROCK: {
+        "take_width": 1,
+        "clear_width": 0,
+        "prevent_adverse": True,
+        "adverse_volume": 15,
+        "disregard_edge": 1,
+        "join_edge": 0,
+        "default_edge": 1,
+    },
+    Product.VOLCANIC_ROCK_VOUCHER_9500: {
+        "take_width": 1,
+        "clear_width": 0,
+        "prevent_adverse": False,
+        "adverse_volume": 30,
+        "disregard_edge": 1,
+        "join_edge": 0,
+        "default_edge": 1,
+    },
+    Product.VOLCANIC_ROCK_VOUCHER_9750: {
+        "take_width": 1,
+        "clear_width": 0,
+        "prevent_adverse": True,
+        "adverse_volume": 15,
+        "disregard_edge": 1,
+        "join_edge": 0,
+        "default_edge": 1,
+    },
+    Product.VOLCANIC_ROCK_VOUCHER_10000: {
+        "take_width": 1,
+        "clear_width": 0,
+        "prevent_adverse": True,
+        "adverse_volume": 15,
+        "disregard_edge": 1,
+        "join_edge": 0,
+        "default_edge": 1,
+    },
+    Product.VOLCANIC_ROCK_VOUCHER_10250: {
+        "take_width": 1,
+        "clear_width": 0,
+        "prevent_adverse": True,
+        "adverse_volume": 15,
+        "disregard_edge": 1,
+        "join_edge": 0,
+        "default_edge": 1,
+    },
+    Product.VOLCANIC_ROCK_VOUCHER_10500: {
+        "take_width": 1,
+        "clear_width": 0,
+        "prevent_adverse": True,
+        "adverse_volume": 15,
+        "disregard_edge": 1,
+        "join_edge": 0,
+        "default_edge": 1,
     },
 }
 
@@ -97,12 +158,17 @@ POSITION_LIMITS = {
     Product.CROISSANTS: 250,
     Product.PICNIC_BASKET1: 60,
     Product.PICNIC_BASKET2: 100,
+
+    # -------------- Add these lines for Volcanic products from second snippet ------
+    Product.VOLCANIC_ROCK: 400,
+    Product.VOLCANIC_ROCK_VOUCHER_9500: 200,
+    Product.VOLCANIC_ROCK_VOUCHER_9750: 200,
+    Product.VOLCANIC_ROCK_VOUCHER_10000: 200,
+    Product.VOLCANIC_ROCK_VOUCHER_10250: 200,
+    Product.VOLCANIC_ROCK_VOUCHER_10500: 200,
 }
 
-# HEDGE_SETS is still used for basket2 logic, so we keep it. We can leave
-# the references to basket1 inside it or remove them. It won’t matter if
-# we are no longer calling the old basket1 snippet. In practice, you can
-# remove the PICNIC_BASKET1 portion if you want, but we’ll just keep it:
+# Still used for basket2 logic
 HEDGE_SETS = {
     "A": {
         Product.PICNIC_BASKET1: {Product.CROISSANTS: -4, Product.JAMS: -5, Product.DJEMBES: -4},
@@ -116,6 +182,18 @@ HEDGE_SETS = {
 
 DEFAULT_TRADE_SIZE = 10
 ROLLING_WINDOW = 20
+
+# ---------------- Additional from second snippet: used for Volcanic vouchers ------
+VOLCANIC_ROCK_VOUCHER_STRIKE = {
+    Product.VOLCANIC_ROCK_VOUCHER_9500: 9500,
+    Product.VOLCANIC_ROCK_VOUCHER_9750: 9750,
+    Product.VOLCANIC_ROCK_VOUCHER_10000: 10000,
+    Product.VOLCANIC_ROCK_VOUCHER_10250: 10250,
+    Product.VOLCANIC_ROCK_VOUCHER_10500: 10500,
+}
+
+# Just as in second snippet:
+DAY = 0  # used in the black-scholes time-to-expiry logic
 
 ###############################################################################
 #                                LOGGER CLASS                                 #
@@ -253,7 +331,7 @@ class Trader:
         adverse_volume: int = 0,
     ):
         """
-        (Same as your main code's generic sub-function)
+        (Same from your main code's sub-function)
         """
         position_limit = self.LIMIT[product]
 
@@ -298,7 +376,7 @@ class Trader:
         sell_order_volume: int,
     ):
         """
-        (Same as your main code's generic sub-function)
+        (Same from your main code's sub-function)
         """
         buy_quantity = self.LIMIT[product] - (position + buy_order_volume)
         if buy_quantity > 0:
@@ -322,7 +400,7 @@ class Trader:
         sell_order_volume: int,
     ):
         """
-        (Same as your main code's generic sub-function)
+        (Same from your main code's sub-function)
         """
         position_after_take = position + buy_order_volume - sell_order_volume
         fair_for_bid = round(fair_value - width)
@@ -356,17 +434,12 @@ class Trader:
         return buy_order_volume, sell_order_volume
 
     ############################################################################
-    #              *** REMOVED OLD get_orders_djembes() FUNCTION ***           #
-    #              *** REMOVED OLD get_orders_picnic_basket1() ***             #
-    ############################################################################
-
-    ############################################################################
     #                   PRODUCT: JAMS  (unchanged from main)                   #
     ############################################################################
 
     def get_orders_jams(self, state: TradingState, trader_state: dict) -> List[Order]:
         """
-        (Same logic from your main algorithm for JAMS; we do NOT replace it.)
+        (Same logic from your main algorithm for JAMS)
         """
         product = Product.JAMS
         if product not in state.order_depths:
@@ -560,7 +633,7 @@ class Trader:
         if len(self.kelp_prices) > 10:
             self.kelp_prices.pop(0)
 
-        fair_value = mmmid_price  # see your snippet
+        fair_value = mmmid_price
 
         take_width = 1
         orders: List[Order] = []
@@ -656,7 +729,7 @@ class Trader:
 
     def get_orders_picnic_basket2(self, state: TradingState, trader_state: dict, result: dict):
         """
-        (Same code from your main algorithm for basket2. We do NOT replace it.)
+        (Same code from your main algorithm for basket2)
         """
         hist = trader_state.setdefault("picnic_hist", {})
         for hedge_key in HEDGE_SETS:
@@ -767,13 +840,12 @@ class Trader:
 
     ############################################################################
     #               *** NEW: EXACT “DJEMBES / CROISSANTS / BASKET1” ***        #
-    #               Inserted from the second algorithm, adapted so            #
-    #               "CROISSANT" -> "CROISSANTS" for consistency               #
+    #               Inserted from second algorithm, references.               #
     ############################################################################
 
     def get_microprice(self, order_depth: OrderDepth) -> float:
         """
-        EXACT from second code (renamed function if needed).
+        EXACT from your second code (renamed function if needed).
         """
         if not order_depth.buy_orders or not order_depth.sell_orders:
             return 0.0
@@ -785,26 +857,22 @@ class Trader:
 
     def artifical_order_depth(self, order_depths: dict, picnic1: bool = True) -> OrderDepth:
         """
-        EXACT from your second code, but where “Product.CROISSANT” is replaced with “Product.CROISSANTS”
-        so that it matches the main code’s product naming.
+        EXACT from second code, with 'CROISSANT' -> 'CROISSANTS' done.
         """
         od = OrderDepth()
 
         if picnic1:
-            # Using the second code’s PICNIC1_WEIGHTS (which references DJEMBES, CROISSANTS, JAMS)
             DJEMBES_PER_PICNIC = 1
             CROISSANTS_PER_PICNIC = 6
             JAMS_PER_PICNIC = 3
         else:
-            # If you want PICNIC2, done differently. We'll just keep the same style:
             CROISSANTS_PER_PICNIC = 4
             JAMS_PER_PICNIC = 2
 
         croissant_od = order_depths.get(Product.CROISSANTS, None)
         jams_od = order_depths.get(Product.JAMS, None)
-
         if not croissant_od or not jams_od:
-            return od  # no data
+            return od
 
         croissant_best_bid = max(croissant_od.buy_orders) if croissant_od.buy_orders else 0
         croissant_best_ask = min(croissant_od.sell_orders) if croissant_od.sell_orders else float("inf")
@@ -841,8 +909,7 @@ class Trader:
 
     def convert_orders(self, artifical_orders: List[Order], order_depths: dict, picnic1: bool = True):
         """
-        EXACT from second code snippet, with “CROISSANT” replaced by “CROISSANTS.”
-        This returns a dict of actual component orders: DJEMBES, CROISSANTS, JAMS.
+        EXACT from second code snippet, with 'CROISSANT' replaced by 'CROISSANTS.'
         """
         if picnic1:
             component_orders = {
@@ -861,7 +928,6 @@ class Trader:
             CROISSANTS_PER_PICNIC = 4
             JAMS_PER_PICNIC = 2
 
-        # The second code uses “ARTIFICAL1” as a placeholder symbol. We'll just pass that through:
         artificial_od = self.artifical_order_depth(order_depths, picnic1)
         best_bid = max(artificial_od.buy_orders) if artificial_od.buy_orders else 0
         best_ask = min(artificial_od.sell_orders) if artificial_od.sell_orders else float("inf")
@@ -910,8 +976,7 @@ class Trader:
     def execute_spreads(self, target_position: int, basket_position: int,
                         order_depths: dict, picnic1: bool = True):
         """
-        EXACT from second code snippet. This is how that code enters or exits
-        positions on PICNIC_BASKET1, then offsets them with DJEMBES, CROISSANTS, JAMS.
+        EXACT from second code snippet for executing basket1 or basket2 spreads
         """
         if picnic1:
             basket = Product.PICNIC_BASKET1
@@ -938,7 +1003,6 @@ class Trader:
             orderbook_volume = min(picnic_ask_vol, abs(art_bid_vol))
             execute_volume = min(orderbook_volume, target_quantity)
 
-            # We create an artificial “ARTIFICAL1” order for -execute_volume to offset
             picnic_orders = [Order(basket, picnic_ask_price, execute_volume)]
             artificial_orders = [Order("ARTIFICAL1", art_bid_price, -execute_volume)]
 
@@ -973,9 +1037,7 @@ class Trader:
                       SPREAD: str,
                       picnic1: bool = True):
         """
-        EXACT from second code snippet: checks the microprice spread between
-        PICNIC_BASKET1 and its synthetic components (Djembes, Croissants, Jams),
-        does a zscore, tries to open/close positions.
+        EXACT from second code snippet: checks the microprice spread for basket1
         """
         if picnic1:
             basket = Product.PICNIC_BASKET1
@@ -993,13 +1055,11 @@ class Trader:
         spread = picnic_mprice - art_mprice
         spread_data["spread_history"].append(spread)
 
-        # We only compute once we have enough “window” data
         if len(spread_data["spread_history"]) < self.params[SPREAD]["spread_window"]:
             return None
         elif len(spread_data["spread_history"]) > self.params[SPREAD]["spread_window"]:
             spread_data["spread_history"].pop(0)
 
-        import numpy as np
         spread_array = np.array(spread_data["spread_history"])
         spread_std = np.std(spread_array)
         if spread_std == 0:
@@ -1024,13 +1084,8 @@ class Trader:
 
     def get_orders_djembes_and_croissants_and_basket1(self, state: TradingState, trader_state: dict):
         """
-        A convenience wrapper that runs the second code’s “spread logic” for Basket1
-        (which internally handles Djembes + Croissants inside “convert_orders”).
-        Returns a dict { Product.DJEMBES: [...], Product.CROISSANTS: [...],
-                         Product.JAMS: [...], Product.PICNIC_BASKET1: [...] }
-        or possibly None/empty if no trades triggered.
+        The second code’s “spread logic” for Basket1 (with Djembes + Croissants + Jams).
         """
-        # In your second code, we store data for SPREAD1 in traderObject[SPREAD1].
         if "SPREAD1" not in trader_state:
             trader_state["SPREAD1"] = {
                 "spread_history": [],
@@ -1041,7 +1096,6 @@ class Trader:
 
         pb1_position = state.position.get(Product.PICNIC_BASKET1, 0)
 
-        # Call the second code’s function:
         ret = self.spread_orders(
             state.order_depths,
             Product.PICNIC_BASKET1,
@@ -1051,6 +1105,456 @@ class Trader:
             picnic1=True
         )
         return ret if ret else {}
+
+    ############################################################################
+    #                 *** INSERT VOLCANIC ROCK + VOUCHERS LOGIC ***            #
+    ############################################################################
+
+    # Below is the second snippet's logic for Volcanic Rock / Vouchers.
+    # We have renamed some methods to _volcano_* to avoid collisions,
+    # but the code is otherwise unchanged in logic.
+
+    def _volcano_brentq(self, f, a, b, tol=1e-10, max_iter=100):
+        fa = f(a)
+        fb = f(b)
+        if fa * fb >= 0:
+            raise ValueError("Function must have different signs at endpoints a and b")
+        if abs(fa) < abs(fb):
+            a, b = b, a
+            fa, fb = fb, fa
+        c = a
+        fc = fa
+        d = e = b - a
+        for iteration in range(max_iter):
+            if fb * fc > 0:
+                c = a
+                fc = fa
+                d = e = b - a
+            if abs(fc) < abs(fb):
+                a, b, c = b, c, b
+                fa, fb, fc = fb, fc, fb
+            tol1 = 2 * tol * abs(b) + 0.5 * tol
+            m = 0.5 * (c - b)
+            if abs(m) <= tol1 or fb == 0:
+                return b
+            if abs(e) >= tol1 and abs(fa) > abs(fb):
+                s = fb / fa
+                if a == c:
+                    # Secant method
+                    p = 2 * m * s
+                    q = 1 - s
+                else:
+                    # Inverse quadratic interpolation
+                    q = fa / fc
+                    r = fb / fc
+                    p = s * (2 * m * q * (q - r) - (b - a) * (r - 1))
+                    q = (q - 1) * (r - 1) * (s - 1)
+                if p > 0:
+                    q = -q
+                p = abs(p)
+                if 2 * p < min(3 * m * q - abs(tol1 * q), abs(e * q)):
+                    e = d
+                    d = p / q
+                else:
+                    d = e = m
+            else:
+                d = e = m
+            a = b
+            fa = fb
+            if abs(d) > tol1:
+                b += d
+            else:
+                b += tol1 if m > 0 else -tol1
+            fb = f(b)
+        raise RuntimeError("Maximum number of iterations exceeded in brentq")
+
+    def _volcano_black_scholes(self, S, K, T, r, sigma):
+        N = NormalDist().cdf
+        d1 = (math.log(S / K) + (r + sigma**2 / 2) * T) / (sigma * math.sqrt(T))
+        d2 = d1 - sigma * math.sqrt(T)
+        return S * N(d1) - K * math.exp(-r * T) * N(d2)
+
+    def _volcano_implied_volatility(self, call_price, spot, strike, time_to_expiry):
+        def equation(volatility):
+            estimated_price = self._volcano_black_scholes(spot, strike, time_to_expiry, 0, volatility)
+            return estimated_price - call_price
+        # Using Brent's method:
+        implied_vol = self._volcano_brentq(equation, 1e-6, 3)
+        return implied_vol
+
+    def _volcano_filtered_mid(self, product: str, order_depth: OrderDepth) -> float:
+        """
+        Copied exactly from second snippet's approach to filtering.
+        """
+        if not order_depth.sell_orders or not order_depth.buy_orders:
+            return None
+        best_ask = min(order_depth.sell_orders.keys())
+        best_bid = max(order_depth.buy_orders.keys())
+        avol = self.params[product]["adverse_volume"]
+        filtered_asks = [
+            price for price in order_depth.sell_orders.keys()
+            if abs(order_depth.sell_orders[price]) >= avol
+        ]
+        filtered_bids = [
+            price for price in order_depth.buy_orders.keys()
+            if abs(order_depth.buy_orders[price]) >= avol
+        ]
+        best_filtered_ask = min(filtered_asks) if filtered_asks else None
+        best_filtered_bid = max(filtered_bids) if filtered_bids else None
+        if best_filtered_ask is not None and best_filtered_bid is not None:
+            return (best_filtered_ask + best_filtered_bid) / 2
+        return (best_ask + best_bid) / 2
+
+    def _volcano_volcanic_rock_voucher_fair_value(
+        self,
+        volcanic_rock_order_depth: OrderDepth,
+        volcanic_rock_voucher_order_depths: dict,
+        timestamp: int,
+        trader_state: dict
+    ) -> dict:
+        S = self._volcano_filtered_mid(Product.VOLCANIC_ROCK, volcanic_rock_order_depth)
+        if S is None:
+            return None
+        total_time = (8 - DAY) / 365.0
+        ticks_per_day = 1_000_000
+        total_ticks = (8 - DAY) * ticks_per_day
+        T = ((total_ticks - timestamp) / total_ticks) * total_time
+
+        voucher_data = {}
+        m_list = []
+        v_list = []
+
+        for product, K in VOLCANIC_ROCK_VOUCHER_STRIKE.items():
+            od = volcanic_rock_voucher_order_depths[product]
+            voucher_mid = self._volcano_filtered_mid(product, od)
+            if voucher_mid is None:
+                continue
+            try:
+                v_t = self._volcano_implied_volatility(voucher_mid, S, K, T)
+                m_t = np.log(K / S) / np.sqrt(T)
+                voucher_data[product] = {
+                    "K": K,
+                    "mid": voucher_mid,
+                    "m_t": m_t,
+                    "v_t": v_t
+                }
+                m_list.append(m_t)
+                v_list.append(v_t)
+            except:
+                continue
+
+        if len(m_list) < 3:
+            return None
+
+        coeffs = np.polyfit(m_list, v_list, deg=2)
+        a, b, c = coeffs
+
+        iv_diffs = []
+        for product, data in voucher_data.items():
+            fitted_iv = a * (data["m_t"] ** 2) + b * data["m_t"] + c
+            fitted_iv = max(fitted_iv, 0.01)
+            data["fitted_iv"] = fitted_iv
+            iv_diff = data["v_t"] - fitted_iv
+            data["iv_diff"] = iv_diff
+            iv_diffs.append(iv_diff)
+
+        if len(iv_diffs) == 0:
+            return None
+
+        mean_diff = np.mean(iv_diffs)
+        std_diff = np.std(iv_diffs) if np.std(iv_diffs) > 1e-6 else 1.0
+
+        zscore_threshold = {
+            Product.VOLCANIC_ROCK_VOUCHER_9500: 1.5,
+            Product.VOLCANIC_ROCK_VOUCHER_9750: 1.78,
+            Product.VOLCANIC_ROCK_VOUCHER_10000: 1.1,
+            Product.VOLCANIC_ROCK_VOUCHER_10250: 1.42,
+            Product.VOLCANIC_ROCK_VOUCHER_10500: 1.5,
+        }
+        signals = {}
+
+        for product, data in voucher_data.items():
+            zscore = (data["iv_diff"] - mean_diff) / std_diff
+            data["zscore"] = zscore
+            strike_name = product  # same
+            if abs(zscore) > zscore_threshold[strike_name]:
+                fitted_iv = data["fitted_iv"]
+                fair = self._volcano_black_scholes(S, data["K"], T, r=0, sigma=fitted_iv)
+                signals[product] = fair
+            else:
+                signals[product] = None
+
+        trader_state["voucher_debug"] = voucher_data
+        return signals
+
+    def _volcano_take_best_orders(
+        self,
+        product: str,
+        fair_value: float,
+        take_width: float,
+        orders: List[Order],
+        order_depth: OrderDepth,
+        position: int,
+        buy_order_volume: int,
+        sell_order_volume: int,
+        prevent_adverse: bool = False,
+        adverse_volume: int = 0,
+    ) -> (int, int):
+        position_limit = self.LIMIT[product]
+
+        if len(order_depth.sell_orders) != 0:
+            best_ask = min(order_depth.sell_orders.keys())
+            best_ask_amount = -1 * order_depth.sell_orders[best_ask]
+            if not prevent_adverse or abs(best_ask_amount) <= adverse_volume:
+                if best_ask <= fair_value - take_width:
+                    quantity = min(best_ask_amount, position_limit - position)
+                    if quantity > 0:
+                        orders.append(Order(product, best_ask, quantity))
+                        buy_order_volume += quantity
+                        order_depth.sell_orders[best_ask] += quantity
+                        if order_depth.sell_orders[best_ask] == 0:
+                            del order_depth.sell_orders[best_ask]
+
+        if len(order_depth.buy_orders) != 0:
+            best_bid = max(order_depth.buy_orders.keys())
+            best_bid_amount = order_depth.buy_orders[best_bid]
+            if not prevent_adverse or abs(best_bid_amount) <= adverse_volume:
+                if best_bid >= fair_value + take_width:
+                    quantity = min(best_bid_amount, position_limit + position)
+                    if quantity > 0:
+                        orders.append(Order(product, best_bid, -1 * quantity))
+                        sell_order_volume += quantity
+                        order_depth.buy_orders[best_bid] -= quantity
+                        if order_depth.buy_orders[best_bid] == 0:
+                            del order_depth.buy_orders[best_bid]
+
+        return buy_order_volume, sell_order_volume
+
+    def _volcano_take_orders(
+        self,
+        product: str,
+        order_depth: OrderDepth,
+        fair_value: float,
+        take_width: float,
+        position: int,
+        prevent_adverse: bool = False,
+        adverse_volume: int = 0,
+    ) -> (List[Order], int, int):
+        orders: List[Order] = []
+        buy_order_volume = 0
+        sell_order_volume = 0
+        buy_order_volume, sell_order_volume = self._volcano_take_best_orders(
+            product,
+            fair_value,
+            take_width,
+            orders,
+            order_depth,
+            position,
+            buy_order_volume,
+            sell_order_volume,
+            prevent_adverse,
+            adverse_volume,
+        )
+        return orders, buy_order_volume, sell_order_volume
+
+    def _volcano_clear_position_order(
+        self,
+        product: str,
+        fair_value: float,
+        width: int,
+        orders: List[Order],
+        order_depth: OrderDepth,
+        position: int,
+        buy_order_volume: int,
+        sell_order_volume: int,
+    ):
+        position_after_take = position + buy_order_volume - sell_order_volume
+        fair_for_bid = round(fair_value - width)
+        fair_for_ask = round(fair_value + width)
+
+        buy_quantity = self.LIMIT[product] - (position + buy_order_volume)
+        sell_quantity = self.LIMIT[product] + (position - sell_order_volume)
+
+        if position_after_take > 0:
+            clear_quantity = sum(
+                volume
+                for price, volume in order_depth.buy_orders.items()
+                if price >= fair_for_ask
+            )
+            clear_quantity = min(clear_quantity, position_after_take)
+            sent_quantity = min(sell_quantity, clear_quantity)
+            if sent_quantity > 0:
+                orders.append(Order(product, fair_for_ask, -abs(sent_quantity)))
+                sell_order_volume += abs(sent_quantity)
+
+        if position_after_take < 0:
+            clear_quantity = sum(
+                abs(volume)
+                for price, volume in order_depth.sell_orders.items()
+                if price <= fair_for_bid
+            )
+            clear_quantity = min(clear_quantity, abs(position_after_take))
+            sent_quantity = min(buy_quantity, clear_quantity)
+            if sent_quantity > 0:
+                orders.append(Order(product, fair_for_bid, abs(sent_quantity)))
+                buy_order_volume += abs(sent_quantity)
+
+        return buy_order_volume, sell_order_volume
+
+    def _volcano_clear_orders(
+        self,
+        product: str,
+        order_depth: OrderDepth,
+        fair_value: float,
+        clear_width: int,
+        position: int,
+        buy_order_volume: int,
+        sell_order_volume: int
+    ) -> (List[Order], int, int):
+        orders: List[Order] = []
+        b, s = self._volcano_clear_position_order(
+            product,
+            fair_value,
+            clear_width,
+            orders,
+            order_depth,
+            position,
+            buy_order_volume,
+            sell_order_volume,
+        )
+        return orders, b, s
+
+    def _volcano_market_make(
+        self,
+        product: str,
+        orders: List[Order],
+        bid: int,
+        ask: int,
+        position: int,
+        buy_order_volume: int,
+        sell_order_volume: int,
+    ) -> (int, int):
+        buy_quantity = self.LIMIT[product] - (position + buy_order_volume)
+        if buy_quantity > 0:
+            orders.append(Order(product, round(bid), buy_quantity))
+        sell_quantity = self.LIMIT[product] + (position - sell_order_volume)
+        if sell_quantity > 0:
+            orders.append(Order(product, round(ask), -sell_quantity))
+        return buy_order_volume, sell_order_volume
+
+    def _volcano_make_orders(
+        self,
+        product: str,
+        order_depth: OrderDepth,
+        fair_value: float,
+        position: int,
+        buy_order_volume: int,
+        sell_order_volume: int,
+        disregard_edge: float,
+        join_edge: float,
+        default_edge: float,
+    ):
+        orders: List[Order] = []
+        asks_above_fair = [
+            price
+            for price in order_depth.sell_orders.keys()
+            if price > fair_value + disregard_edge
+        ]
+        bids_below_fair = [
+            price
+            for price in order_depth.buy_orders.keys()
+            if price < fair_value - disregard_edge
+        ]
+        best_ask_above_fair = min(asks_above_fair) if asks_above_fair else None
+        best_bid_below_fair = max(bids_below_fair) if bids_below_fair else None
+
+        ask = round(fair_value + default_edge)
+        if best_ask_above_fair is not None:
+            if abs(best_ask_above_fair - fair_value) <= join_edge:
+                ask = best_ask_above_fair
+            else:
+                ask = best_ask_above_fair - 1
+
+        bid = round(fair_value - default_edge)
+        if best_bid_below_fair is not None:
+            if abs(fair_value - best_bid_below_fair) <= join_edge:
+                bid = best_bid_below_fair
+            else:
+                bid = best_bid_below_fair + 1
+
+        buy_order_volume, sell_order_volume = self._volcano_market_make(
+            product, orders, bid, ask, position, buy_order_volume, sell_order_volume
+        )
+        return orders, buy_order_volume, sell_order_volume
+
+    def get_orders_volcanic(self, state: TradingState, trader_state: dict) -> dict:
+        """
+        Reproduce the second snippet's run logic, but only for VOLCANIC_ROCK and its vouchers.
+        We keep the code "as is" in logic, just used as a sub-function here.
+        """
+        result = {}
+
+        volcanic_rock_vouchers = [
+            Product.VOLCANIC_ROCK_VOUCHER_9500,
+            Product.VOLCANIC_ROCK_VOUCHER_9750,
+            Product.VOLCANIC_ROCK_VOUCHER_10000,
+            Product.VOLCANIC_ROCK_VOUCHER_10250,
+            Product.VOLCANIC_ROCK_VOUCHER_10500,
+        ]
+
+        if (
+            Product.VOLCANIC_ROCK in state.order_depths
+            and all(vp in state.order_depths for vp in volcanic_rock_vouchers)
+        ):
+            voucher_od = {p: state.order_depths[p] for p in volcanic_rock_vouchers}
+            fair_values = self._volcano_volcanic_rock_voucher_fair_value(
+                state.order_depths[Product.VOLCANIC_ROCK],
+                voucher_od,
+                state.timestamp,
+                trader_state
+            )
+            if fair_values is not None:
+                for voucher_product in volcanic_rock_vouchers:
+                    fv = fair_values.get(voucher_product, None)
+                    if fv is None:
+                        continue
+                    od = state.order_depths[voucher_product]
+                    pos = state.position.get(voucher_product, 0)
+
+                    t_orders, buy_vol, sell_vol = self._volcano_take_orders(
+                        voucher_product,
+                        od,
+                        fv,
+                        self.params[voucher_product]["take_width"],
+                        pos,
+                        self.params[voucher_product]["prevent_adverse"],
+                        self.params[voucher_product]["adverse_volume"],
+                    )
+                    c_orders, buy_vol, sell_vol = self._volcano_clear_orders(
+                        voucher_product,
+                        od,
+                        fv,
+                        self.params[voucher_product]["clear_width"],
+                        pos,
+                        buy_vol,
+                        sell_vol,
+                    )
+                    m_orders, _, _ = self._volcano_make_orders(
+                        voucher_product,
+                        od,
+                        fv,
+                        pos,
+                        buy_vol,
+                        sell_vol,
+                        self.params[voucher_product]["disregard_edge"],
+                        self.params[voucher_product]["join_edge"],
+                        self.params[voucher_product]["default_edge"],
+                    )
+                    final_list = t_orders + c_orders + m_orders
+                    if final_list:
+                        result[voucher_product] = final_list
+
+        return result
 
     ############################################################################
     #                           run(...) METHOD                                #
@@ -1072,52 +1576,45 @@ class Trader:
 
         result = {}
 
-        # -- (REMOVED) Old call to get_orders_djembes --
-        # # DJEMBES
-        # dj_orders = self.get_orders_djembes(state, trader_state)
-        # if dj_orders:
-        #     result[Product.DJEMBES] = dj_orders
-
-        # 2) JAMS (unchanged)
+        # JAMS
         jam_orders = self.get_orders_jams(state, trader_state)
         if jam_orders:
             result[Product.JAMS] = jam_orders
             logger.print("[DjembeJamTrader] JAMS =>", jam_orders)
 
-        # 3) RAINFOREST_RESIN (unchanged)
+        # RAINFOREST_RESIN
         if Product.RAINFOREST_RESIN in self.params:
             rr_orders = self.get_orders_rainforest_resin(state)
             if rr_orders:
                 result[Product.RAINFOREST_RESIN] = rr_orders
 
-        # 4) KELP (unchanged)
+        # KELP
         if Product.KELP in self.params:
             kelp_orders = self.get_orders_kelp(state)
             if kelp_orders:
                 result[Product.KELP] = kelp_orders
 
-        # 5) SQUID_INK (unchanged)
+        # SQUID_INK
         if Product.SQUID_INK in self.params:
             si_orders = self.get_orders_squid_ink(state, trader_state)
             if si_orders:
                 result[Product.SQUID_INK] = si_orders
 
-        # 6) PICNIC_BASKET2 logic (unchanged)
+        # PICNIC_BASKET2 logic
         self.get_orders_picnic_basket2(state, trader_state, result)
 
-        # -- (REMOVED) Old call to get_orders_picnic_basket1 --
-        # pb1_dict = self.get_orders_picnic_basket1(state, trader_state)
-        # if pb1_dict:
-        #     for symb, ords in pb1_dict.items():
-        #         result.setdefault(symb, []).extend(ords)
-
-        # 7) ***NEW*** The second code’s basket1 logic, which includes Djembe & Croissants:
+        # ***NEW*** The second code’s basket1 logic
         new_basket1_orders = self.get_orders_djembes_and_croissants_and_basket1(state, trader_state)
         for symb, orders_list in new_basket1_orders.items():
             if orders_list:
                 result.setdefault(symb, []).extend(orders_list)
 
-        # End
+        # ***NEW*** Inserted: Volcanic Rock and Vouchers logic
+        volcanic_dict = self.get_orders_volcanic(state, trader_state)
+        for symb, orders_list in volcanic_dict.items():
+            if orders_list:
+                result.setdefault(symb, []).extend(orders_list)
+
         conversions = 1
         final_trader_data = jsonpickle.encode(trader_state)
         logger.flush(state, result, conversions, final_trader_data)
