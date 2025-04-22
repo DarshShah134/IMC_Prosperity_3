@@ -172,7 +172,6 @@ class Trader:
             changes.append(self.sunlight_history[i] - self.sunlight_history[i - 1])
         return sum(changes) / len(changes)
     
-    
     def take_macaron(self, state, market_data):
         product = "MAGNIFICENT_MACARONS"
         orders: Dict[str, List[Order]] = {product: []}
