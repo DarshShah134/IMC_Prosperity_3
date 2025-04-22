@@ -969,7 +969,7 @@ class Trader:
     # --- Helper Functions (unchanged) ---
     def _calculate_tte(self, timestamp: int) -> float:
         timesteps_per_day = 1_000_000
-        days_total = 5
+        days_total = 3
         days_passed = timestamp / float(timesteps_per_day)
         time_left_days = max(0.0, days_total - days_passed)
         return max(1e-9, time_left_days / 365.0)
@@ -2049,3 +2049,4 @@ class Trader:
 
         logger.flush(state, result, conversions, traderData)
         return result, conversions, traderData
+#By Mridhan Balaji and Darsh Shah
