@@ -21,36 +21,80 @@ This repository contains our implementation for the IMC Prosperity 3 trading com
 
 ### Round 1
 
-- Initial implementation focusing on basic trading strategies
-- Includes multiple algorithm versions (v0 through v3)
-- Data visualization and manual trading tools
+- **Base Implementation**: `round1.py`
+- **Final Version**: `round1_FINAL.py`
+- **GPT-Assisted Version**: `round1GPT.py`
+- **Version 2**: `round1_v2.py`
+- Features:
+  - Basic trading strategies
+  - Data visualization tools
+  - Manual trading interface
+  - Initial market analysis
 
 ### Round 2
 
-- Enhanced trading strategies
-- Multiple algorithm versions (v0 through v2)
-- Improved data handling and analysis
+- **Base Implementation**: `round2.py`
+- **Final Version**: `round2_FIXED.py`
+- **Version 1**: `round2_v1.py`
+- **Version 2**: `round2_v2.py`
+- **Version 3**: `round2_v3.py`
+- **Version 4**: `round2_v4.py`
+- **Shell Script**: `round2_sh.py`
+- **Square Root Implementation**: `r2sq.py`
+- Features:
+  - Enhanced trading strategies
+  - Improved data handling
+  - Advanced market analysis
+  - Performance optimization
 
 ### Round 3
 
-- Advanced trading strategies
-- Multiple algorithm versions (v0 through v4)
-- Includes Black-Scholes model implementation
-- Comprehensive data analysis tools
+- **Base Implementation**: `round3.py`
+- **Final Version**: `round3_FINAL.py`
+- **Version 1**: `round3_v1.py`
+- **Version 2**: `round3_v2.py`
+- **Version 3**: `round3_v3.py`
+- **Version 4**: `round3_v4.py`
+- Features:
+  - Advanced trading strategies
+  - Black-Scholes model implementation
+  - Comprehensive data analysis
+  - Risk management systems
+  - Market making algorithms
 
 ### Round 4
 
-- Sophisticated trading strategies
-- Multiple algorithm versions (v1 through v6)
-- Final implementation with optimized performance
-- Includes testing and validation tools
+- **Base Implementation**: `round4.py`
+- **Final Version**: `round4_final.py`
+- **Version 1**: `round4_v1.py`
+- **Version 2**: `round4_v2.py`
+- **Version 3**: `round4_v3.py`
+- **Version 4**: `round4_v4.py`
+- **Version 5**: `round4_v5.py`
+- **Version 6**: `round4_v6.py`
+- **Testing Version**: `round4_TEST.py`
+- **R4 Implementation**: `r4.py`
+- Features:
+  - Sophisticated trading strategies
+  - Advanced market making
+  - Performance optimization
+  - Comprehensive testing suite
+  - Risk management systems
 
 ### Round 5
 
-- Latest round implementation
-- Multiple algorithm versions (v2, v3, v6)
-- Final implementation with comprehensive testing
-- Advanced data modeling and analysis
+- **Base Implementation**: `round5.py`
+- **Final Version**: `round5_Final.py`
+- **Version 2**: `round5_v2.py`
+- **Version 3**: `round5_v3.py`
+- **Version 6**: `round5_v6.py`
+- **Testing Version**: `round5_TEST.py`
+- Features:
+  - Latest trading strategies
+  - Advanced market analysis
+  - Comprehensive testing
+  - Performance optimization
+  - Risk management systems
 
 ## Development Environment
 
